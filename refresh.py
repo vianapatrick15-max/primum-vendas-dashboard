@@ -72,7 +72,9 @@ def channel_bucket(src):
     if 'whats' in s or s == 'wpp': return 'whatsapp'
     if s in ('social', 'ig', 'instagram') or 'instagram' in s: return 'social'
     if s == 'meta_ads' or s == 'meta' or s.startswith('meta') or 'facebook' in s or s == 'fb': return 'meta'
-    return 'outros'   # vazio, exec, direct, organico, importacao, sem rastreio...
+    # Comercial = venda sem clique de marketing rastreavel (fechamento/Hotmart/import/direto)
+    if s == '' or s == 'exec' or 'hotmart' in s or 'importa' in s or 'sem rastreio' in s or s == 'direct': return 'comercial'
+    return 'outros'   # chatgpt.com, organico, referrals diversos
 
 def ad_network(src):
     """Rede das tabelas de ANUNCIO: search (google) ou meta (so meta_ads pago) ou None.

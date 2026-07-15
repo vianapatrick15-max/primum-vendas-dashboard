@@ -152,7 +152,7 @@
   </div>
 </div>
 
-<div class="adsec">
+<div class="adsec" id="adsec-anuncios">
   <div class="ptitle" style="margin-bottom:2px">Anúncios <span class="r">por utm_content</span></div>
   <div class="subpanel"><div class="subhead">Meta Ads</div><div id="ads-meta"></div></div>
   <div class="subpanel"><div class="subhead search">Search Ads <span class="badge" id="search-badge"></span></div><div id="ads-search"></div></div>
@@ -172,11 +172,12 @@ const F={
   pct:v=>(v*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%',
 };
 const CH={
-  outros:{lab:'OUTROS',c:'var(--gray)',bg:'#20242c',fg:'#c3c9d3'},
   search:{lab:'SEARCH ADS',c:'var(--green)',bg:'rgba(52,211,153,.12)',fg:'#34d399'},
+  comercial:{lab:'COMERCIAL',c:'#d9a441',bg:'rgba(217,164,65,.12)',fg:'#e0b45c'},
   social:{lab:'REDES SOCIAIS',c:'var(--purple)',bg:'rgba(168,85,247,.12)',fg:'#c08cff'},
   meta:{lab:'META ADS',c:'var(--blue)',bg:'rgba(79,157,255,.12)',fg:'#4f9dff'},
   whatsapp:{lab:'WHATSAPP',c:'var(--teal)',bg:'rgba(45,212,191,.12)',fg:'#2dd4bf'},
+  outros:{lab:'OUTROS',c:'var(--gray)',bg:'#20242c',fg:'#c3c9d3'},
 };
 let DATA, BRAND='cbi', TIME='month', REF;
 
@@ -224,31 +225,29 @@ function render(){
 
   document.getElementById('sub').innerHTML=DATA.brands[BRAND].label+' &nbsp;|&nbsp; '+fmtLabel(ini,fim)+' &nbsp;·&nbsp; atualizado '+DATA.generated_at;
 
-  // KPIs
-  const kd=(o)=>`<span class="kd ${o.cls}">${o.t}</span>`;
+  // KPIs (sem deltas de % — a pedido da diretoria)
   const K=[
-    {l:'Total de Vendas',v:F.int(cur.vendas),a:'var(--green)',d:delta(cur.vendas,prev.vendas)},
-    {l:'Receita Total',v:F.brl(cur.receita),a:'var(--pink)',d:delta(cur.receita,prev.receita)},
-    {l:'Pré-checkout (Leads)',v:F.int(cur.precheck),a:'#c9ced7',d:delta(cur.precheck,prev.precheck)},
-    {l:'Conversão Geral',v:F.pct(conv),a:'var(--amber)',d:delta(conv,pconv)},
-    {l:'Investimento',v:inv?F.brl(inv):'—',a:'var(--blue)',d:delta(inv,pinv),add:1},
-    {l:'CPA',v:cpa?F.brl(cpa):'—',a:'var(--amber)',d:invDelta(cpa,pcpa),add:1},
-    {l:'ROAS',v:inv?roas.toFixed(1)+'x':'—',a:'var(--green)',d:delta(roas,proas),add:1},
+    {l:'Total de Vendas',v:F.int(cur.vendas),a:'var(--green)'},
+    {l:'Receita Total',v:F.brl(cur.receita),a:'var(--pink)'},
+    {l:'Pré-checkout (Leads)',v:F.int(cur.precheck),a:'#c9ced7'},
+    {l:'Conversão Geral',v:F.pct(conv),a:'var(--amber)'},
+    {l:'Investimento',v:inv?F.brl(inv):'—',a:'var(--blue)',add:1},
+    {l:'CPA',v:cpa?F.brl(cpa):'—',a:'var(--amber)',add:1},
+    {l:'ROAS',v:inv?roas.toFixed(1)+'x':'—',a:'var(--green)',add:1},
   ];
   document.getElementById('kpis').innerHTML=K.map(k=>`<div class="kpi ${k.add?'add':''}" style="--acc:${k.a}">
-    ${k.add?'<span class="ktag">novo</span>':kd(k.d)}
-    <div class="kl">${k.l}</div><div class="kv mono">${k.v}</div>
-    ${k.add?kd(k.d):''}</div>`).join('');
+    ${k.add?'<span class="ktag">novo</span>':''}
+    <div class="kl">${k.l}</div><div class="kv mono">${k.v}</div></div>`).join('');
 
-  // Funnel
-  const dP=delta(cur.precheck,prev.precheck),dV=delta(cur.vendas,prev.vendas),dR=delta(cur.receita,prev.receita);
+  // Funnel (sem deltas)
   document.getElementById('funnel').innerHTML=`
-    <div class="fstep" style="--acc:var(--purple)"><div class="row"><span>PRÉ-CHECKOUT</span><span><span class="d ${dP.cls}" style="color:var(--${dP.cls=='up'?'up':dP.cls=='down'?'down':'mut2'})">${dP.t}</span> &nbsp;<b>${F.int(cur.precheck)}</b></span></div><div class="fbar"><i style="width:100%"></i></div></div>
+    <div class="fstep" style="--acc:var(--purple)"><div class="row"><span>PRÉ-CHECKOUT</span><b>${F.int(cur.precheck)}</b></div><div class="fbar"><i style="width:100%"></i></div></div>
     <div class="fconv">▾ ${F.pct(conv)} conversão</div>
-    <div class="fstep" style="--acc:var(--green)"><div class="row"><span>VENDAS</span><span><span class="d ${dV.cls}" style="color:var(--${dV.cls=='up'?'up':dV.cls=='down'?'down':'mut2'})">${dV.t}</span> &nbsp;<b>${F.int(cur.vendas)}</b></span></div><div class="fbar"><i style="width:${cur.precheck?Math.max(4,cur.vendas/cur.precheck*100):0}%"></i></div></div>
-    <div class="fbox"><span class="l">Receita Total <span class="d ${dR.cls}" style="color:var(--${dR.cls=='up'?'up':dR.cls=='down'?'down':'mut2'});font-size:11px">${dR.t}</span></span><span class="v mono">${F.brl(cur.receita)}</span></div>`;
+    <div class="fstep" style="--acc:var(--green)"><div class="row"><span>VENDAS</span><b>${F.int(cur.vendas)}</b></div><div class="fbar"><i style="width:${cur.precheck?Math.max(4,cur.vendas/cur.precheck*100):0}%"></i></div></div>
+    <div class="fbox"><span class="l">Receita Total</span><span class="v mono">${F.brl(cur.receita)}</span></div>`;
 
   drawChart(seriesDaily(BRAND,ini,fim));
+  document.getElementById('adsec-anuncios').style.display = BRAND==='bws' ? 'none' : '';
   renderAds(ini,fim);
   renderChannels(ini,fim,cur);
   document.getElementById('foot').textContent='Fontes: Vendas Guru · Pré-checkout Hubspot · Investimento Meta+Google (só campanhas de venda). Investimento disponível a partir de 01/07/2026.';
@@ -315,7 +314,7 @@ function renderChannels(ini,fim,cur){
   const agg={};
   DATA.brands[BRAND].channels.forEach(c=>{if(c.date>=ini&&c.date<=fim){
     const o=agg[c.bucket]||(agg[c.bucket]={vendas:0,receita:0});o.vendas+=c.vendas;o.receita+=c.receita;}});
-  const order=['outros','search','social','meta','whatsapp'];
+  const order=['search','comercial','social','meta','whatsapp','outros'];
   const totV=Object.values(agg).reduce((s,o)=>s+o.vendas,0)||0;
   const totR=Object.values(agg).reduce((s,o)=>s+o.receita,0)||0;
   const mx=Math.max(1,...Object.values(agg).map(o=>o.vendas));
