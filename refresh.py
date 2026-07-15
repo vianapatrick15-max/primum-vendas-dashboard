@@ -37,7 +37,7 @@ SID_GOOGLE   = '1BEk0r4k8BLzr8gqtJbBcXZgFzxti94NgwjrKixBuVsI'
 BRANDS = {
     'aristo': {'label': 'Aristo', 'vendas': 'Aristo', 'precheck': '[ART] Pré-checkouts Hubspot', 'meta': 'ARISTO', 'google': 'Aristo'},
     'cbi':    {'label': 'CBI',    'vendas': 'CBI',    'precheck': '[CBI] Pré-checkouts Hubspot', 'meta': 'CBI',   'google': 'CBI Of Miami'},
-    'bws':    {'label': 'BWS',    'vendas': 'BWS',    'precheck': '[BWS] Leads Hubspot',          'meta': 'BWS',   'google': 'BWS Pós Médica', 'qual': 'é médico?'},
+    'bws':    {'label': 'BWS',    'vendas': 'BWS',    'precheck': '[BWS] Leads Hubspot',          'meta': 'BWS',   'google': 'BWS Pós Médica', 'qual': 'é médico?', 'inv_tokens': ('vendas', 'captacao')},
     'eduq':   {'label': 'EDUQ',   'vendas': 'MedQ',   'precheck': '[MDQ] Pré-checkouts Hubspot', 'meta': 'MDQ',   'google': 'EduQ | Medq'},
 }
 
@@ -82,11 +82,15 @@ def ad_network(src):
     if s in ('meta_ads', 'meta') or 'facebook' in s or s == 'fb': return 'meta'
     return None
 
-# tokens que NUNCA contam como investimento de venda (confirmado pelo Patrick)
-NAO_VENDA = ('diagnostico', 'diagnóstico', 'experience', 'distribu', 'live')
-def is_venda_camp(camp):
+# tokens que NUNCA contam como investimento (branding/lead-magnet de outro produto)
+NAO_INV = ('diagnostico', 'diagnóstico', 'experience', 'distribu', 'live')
+def is_inv_camp(camp, tokens):
+    """Conta como investimento de aquisicao se bate algum `tokens` e nao esta em NAO_INV.
+    Padrao tokens=('vendas',) (MedQ/CBI/Aristo). BWS = ('vendas','captacao') pois a
+    matricula vem do funil de captacao (faculdade), nao de campanha de venda direta."""
     c = (camp or '').lower()
-    return 'vendas' in c and not any(x in c for x in NAO_VENDA)
+    if any(x in c for x in NAO_INV): return False
+    return any(t in c for t in tokens)
 
 def header_map(rows):
     hdr = rows[0]
@@ -145,9 +149,10 @@ for key, cfg in BRANDS.items():
     # INVESTIMENTO META (so 'vendas')
     m = load(SID_META, cfg['meta']); hm = header_map(m)
     c_day = col(hm, 'day'); c_camp = col(hm, 'campaign name'); c_spend = col(hm, 'amount spent')
+    inv_tokens = cfg.get('inv_tokens', ('vendas',))
     for r in m[1:]:
         d = norm_date(get(r, c_day))
-        if not d or not is_venda_camp(get(r, c_camp)): continue
+        if not d or not is_inv_camp(get(r, c_camp), inv_tokens): continue
         daily[d]['inv_meta'] += brl(get(r, c_spend))
 
     # INVESTIMENTO GOOGLE (so 'vendas', filtrando pela conta da marca)
@@ -155,7 +160,7 @@ for key, cfg in BRANDS.items():
     c_day = col(hm, 'day'); c_acct = col(hm, 'account name'); c_camp = col(hm, 'campaign name'); c_cost = col(hm, 'cost (spend)', 'cost')
     for r in g[1:]:
         d = norm_date(get(r, c_day)); acct = (get(r, c_acct) or '').strip()
-        if not d or acct != cfg['google'] or not is_venda_camp(get(r, c_camp)): continue
+        if not d or acct != cfg['google'] or not is_inv_camp(get(r, c_camp), inv_tokens): continue
         daily[d]['inv_google'] += brl(get(r, c_cost))
 
     data[key] = {
