@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.bak
+credentials*.json
+.env
+preview.png

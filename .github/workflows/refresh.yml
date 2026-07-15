@@ -1,0 +1,47 @@
+name: Refresh Painel de Vendas Primum
+
+on:
+  schedule:
+    # de hora em hora (minuto 17). Cron do GitHub e sempre UTC.
+    - cron: "17 * * * *"
+  workflow_dispatch:  # permite rodar manualmente
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Rebuild dashboard
+        env:
+          GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
+          TZ: America/Sao_Paulo
+        run: python refresh.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html data.json
+          if git diff --staged --quiet; then
+            echo "Sem mudancas nos dados"
+          else
+            git commit -m "auto: refresh $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi
